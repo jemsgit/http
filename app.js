@@ -5,6 +5,9 @@ const server = http.createServer();
 server.listen(portNumber);
 
 server.on('request', (request, response)=>{
-  console.log(request);
-  console.log(response);
+  console.log('on request');
+  request.on('data', (data)=>{
+    console.log('req data');
+    console.log(data);
+  })
 })

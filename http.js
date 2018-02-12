@@ -10,36 +10,40 @@ class HttpServer {
   constructor(options){
     this.port = 8080;
     this.emitter = new EventEmmitter();
-    this.server = net.createServer((c) => {
-      console.log('client connected');
-      c.on('end', () => {
+    this.server = net.createServer((socket) => {
+
+      socket.on('end', () => {
         console.log('client disconnected');
       });
 
       let headersLoaded = false;
       let headersChunks = [];
       let requestDataChunks = [];
-
-      let request = new HttpRequest();
       let response = new HttpResponse()
+      let request = new HttpRequest({socket});
 
-      c.on('data', (data) => {
-        if(!headersLoaded){
+      let headersCallback = (data) => {
           this.processRequestHeaders(data, headersChunks, (headers)=>{
-            headersLoaded = true;
-            request.headers = headers;
-            this.emitter.emit('request', request, response)
-          });
-        } else {
-          c.pipe(request)
-        }
-      });
+            socket.pause();
+            socket.removeListener('data', headersCallback);
+            request.setHeaders(headers[0]);
+            request.unshift(headers[1]);
+            socket.resume();
+            request.subscribeOnData();
 
-      c.on('end', ()=>{
-        console.log('end');
+            console.log('emit req');
+            this.emitter.emit('request', request, response);
+          });
+
+      }
+
+      socket.on('data', headersCallback);
+
+      socket.on('end', (test)=>{
+        console.log('end', test);
       })
-      c.write('hello\r\n');
-      c.pipe(c);
+
+      socket.write('hello\r\n');
     });
   }
 
@@ -48,15 +52,15 @@ class HttpServer {
       this.port = port
     }
     this.server.listen(this.port);
-    console.log(this.port)
   }
 
 
   processRequestHeaders(data, chunks, endHeadersCallback){
     chunks.push(data.toString('utf8'))
     let headers = chunks.join('');
-    if(headers.indexOf('\r\n\r\n') > -1 || headers.indexOf(EOL+EOL) > -1){
-        endHeadersCallback(headers);
+    if(headers.indexOf('\r\n\r\n') > -1){
+        console.log(headers.split('\r\n\r\n'));
+        endHeadersCallback(headers.split('\r\n\r\n'));
     }
   }
 
