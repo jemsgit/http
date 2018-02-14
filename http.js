@@ -16,31 +16,26 @@ class HttpServer {
         console.log('client disconnected');
       });
 
-      let headersLoaded = false;
       let headersChunks = [];
-      let requestDataChunks = [];
-      let response = new HttpResponse()
+      let response = new HttpResponse({socket})
       let request = new HttpRequest({socket});
 
       let headersCallback = (data) => {
-          this.processRequestHeaders(data, headersChunks, (headers)=>{
-            headersLoaded = true;
+          this.processRequestHeaders(data, headersChunks, (result)=>{
             socket.pause();
             socket.removeListener('data', headersCallback);
-            request.setHeaders(headers[0]);
-            request.unshift(headers[1]);
+            request.setHeaders(result.headers);
+            request.unshift(result.body);
             request.subscribeOnData();
-
             this.emitter.emit('request', request, response);
             socket.resume();
           });
-
       }
 
       socket.on('data', headersCallback);
 
-      socket.on('end', (test)=>{
-        console.log('end', test);
+      socket.on('end', ()=>{
+        console.log('end');
       })
 
       socket.write('hello\r\n');
@@ -59,9 +54,31 @@ class HttpServer {
     chunks.push(data.toString('utf8'))
     let headers = chunks.join('');
     if(headers.indexOf('\r\n\r\n') > -1){
-        console.log(headers.split('\r\n\r\n'));
-        endHeadersCallback(headers.split('\r\n\r\n'));
+        let result = headers.split('\r\n\r\n');
+        endHeadersCallback({headers: this.parseHeaders(result[0]), body: result[1]});
     }
+  }
+
+  parseHeaders(headersString){
+    if(!headersString){
+      return null;
+    }
+    let headers = {}
+    let parts = headersString.split('\r\n');
+    let [Type, Path, Protocol] = parts[0].split(/\s+/g);
+    headers = {
+      ...headers,
+      Type,
+      Path,
+      Protocol
+    }
+    parts.shift(1);
+    parts.forEach((val)=>{
+      let delimeterIndex = val.indexOf(':');
+      headers[val.slice(0,delimeterIndex)] = val.slice(delimeterIndex + 1).trim();
+    })
+    console.log(JSON.stringify(headers))
+    return headers;
   }
 
   on(eventType, callback){
