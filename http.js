@@ -24,15 +24,15 @@ class HttpServer {
 
       let headersCallback = (data) => {
           this.processRequestHeaders(data, headersChunks, (headers)=>{
+            headersLoaded = true;
             socket.pause();
             socket.removeListener('data', headersCallback);
             request.setHeaders(headers[0]);
             request.unshift(headers[1]);
-            socket.resume();
             request.subscribeOnData();
 
-            console.log('emit req');
             this.emitter.emit('request', request, response);
+            socket.resume();
           });
 
       }

@@ -5,6 +5,7 @@ class HttpRequest extends Readable{
   constructor(options){
     super(options)
     this.socket = options.socket;
+    this.bodyChunk = '';
   }
 
   setHeaders(headers){
@@ -13,16 +14,12 @@ class HttpRequest extends Readable{
 
   subscribeOnData(){
     this.socket.on('data', (data)=>{
-      console.log('data');
-      console.log(data.toString('utf8'));
       this.bodyChunk = data.toString('utf8');
+      this.push(this.bodyChunk.toString('uft8'));
     })
   }
 
   _read(){
-    console.log('read');
-    console.log(this.bodyChunk);
-    this.push(this.bodyChunk);
   }
 
 }
