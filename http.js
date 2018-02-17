@@ -17,7 +17,7 @@ class HttpServer {
       });
 
       let headersChunks = [];
-      let response = new HttpResponse({socket})
+      let response = new HttpResponse({socket});
       let request = new HttpRequest({socket});
 
       let headersCallback = (data) => {
@@ -25,24 +25,20 @@ class HttpServer {
             socket.pause();
             socket.removeListener('data', headersCallback);
             request.setHeaders(result.headers);
-            request.unshift(result.body);
             request.subscribeOnData();
+            request.unshift(result.body);
             this.emitter.emit('request', request, response);
             socket.resume();
           });
       }
 
       socket.on('data', headersCallback);
-
-      socket.on('end', ()=>{
-        console.log('end');
-      })
     });
   }
 
   listen(port){
     if(Number.isInteger(port)){
-      this.port = port
+      this.port = port;
     }
     this.server.listen(this.port);
   }
@@ -73,9 +69,8 @@ class HttpServer {
     parts.shift(1);
     parts.forEach((val)=>{
       let delimeterIndex = val.indexOf(':');
-      headers[val.slice(0,delimeterIndex)] = val.slice(delimeterIndex + 1).trim();
+      headers[val.slice(0, delimeterIndex)] = val.slice(delimeterIndex + 1).trim();
     })
-    console.log(JSON.stringify(headers))
     return headers;
   }
 
