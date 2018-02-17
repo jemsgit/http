@@ -18,16 +18,24 @@ class HttpRequest extends Readable{
         this.url = `${headers.Host}${headers.Path}`;
       }
     }
+    if(headers && headers['Content-Length']){
+      this.avaliadbleContent = parseInt(headers['Content-Length'], 10);
+    }
   }
 
   subscribeOnData(){
     this.socket.on('data', (data)=>{
-      this.bodyChunk = data.toString('utf8');
-      this.push(this.bodyChunk.toString('uft8'));
+      this.avaliadbleContent-=data.length;
+      this.bodyChunk = data;
+      this.push(this.bodyChunk);
+      if(this.avaliadbleContent === 0){
+        this.push(null)
+      }
     })
   }
 
   _read(){
+
   }
 
 }

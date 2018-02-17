@@ -37,8 +37,6 @@ class HttpServer {
       socket.on('end', ()=>{
         console.log('end');
       })
-
-      socket.write('hello\r\n');
     });
   }
 
