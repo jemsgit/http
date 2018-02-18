@@ -26,9 +26,10 @@ class HttpServer {
             socket.removeListener('data', headersCallback);
             request.setHeaders(result.headers);
             request.subscribeOnData();
+            socket.resume();
             request.unshift(result.body);
             this.emitter.emit('request', request, response);
-            socket.resume();
+
           });
       }
 
