@@ -1,5 +1,5 @@
-const {Writable} = require('stream');
-const statuses = require('./statuses')
+const { Writable } = require('stream');
+const { STATUS_CODES } = require('http');
 
 class HttpResponse extends Writable{
 
@@ -33,7 +33,7 @@ class HttpResponse extends Writable{
 
   convertHeaders(){
     var status = this.status || this.defaultStatus;
-    var header = 'HTTP/1.1 ' + status + ' ' + statuses[status] + '\r\n';
+    var header = 'HTTP/1.1 ' + status + ' ' + STATUS_CODES[status] + '\r\n';
     for (var k in this.headers) {
        header += k + ': ' + this.headers[k] + '\r\n';
     }
