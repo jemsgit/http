@@ -27,7 +27,7 @@ server.on('request', (request, response)=>{
         }
     } else {
       request.on('data', (data)=>{
-          console.log(data);
+          console.log(data.toString('utf8'));
       })
       request.on('end', () => {
         response.setStatus(200);

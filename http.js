@@ -3,6 +3,8 @@ const EventEmmitter = require('events');
 const {EOL} = require('os')
 const HttpRequest = require('./httpRequest');
 const HttpResponse = require('./httpResponse');
+const WriteHelper = require('./writeHelper');
+
 
 
 class HttpServer {
@@ -10,26 +12,30 @@ class HttpServer {
   constructor(options){
     this.port = 8080;
     this.emitter = new EventEmmitter();
+    this.headersChunks = Buffer.from([]);
     this.server = net.createServer((socket) => {
 
       socket.on('end', () => {
         console.log('client disconnected');
       });
 
-      let headersChunks = [];
       let response = new HttpResponse({socket});
       let request = new HttpRequest({socket});
+      let writeHelper = new WriteHelper(socket, request);
+      writeHelper.on('unpipe', (src) => {
+        console.error('Something has stopped piping into the writer.');
+      });
 
       let headersCallback = (data) => {
-          this.processRequestHeaders(data, headersChunks, (result)=>{
+          this.processRequestHeaders(data, (result)=>{
             socket.pause();
+            this.headersChunks = Buffer.from([]);
             socket.removeListener('data', headersCallback);
             request.setHeaders(result.headers);
-            request.subscribeOnData();
+            socket.unshift(result.body);
+            socket.pipe(writeHelper);
             socket.resume();
-            request.unshift(result.body);
             this.emitter.emit('request', request, response);
-
           });
       }
 
@@ -45,21 +51,23 @@ class HttpServer {
   }
 
 
-  processRequestHeaders(data, chunks, endHeadersCallback){
-    chunks.push(data.toString('utf8'))
-    let headers = chunks.join('');
-    if(headers.indexOf('\r\n\r\n') > -1){
-        let result = headers.split('\r\n\r\n');
-        endHeadersCallback({headers: this.parseHeaders(result[0]), body: result[1]});
+  processRequestHeaders(data, endHeadersCallback){
+    this.headersChunks = Buffer.concat([this.headersChunks, data]);
+    let spacePosition = this.headersChunks.indexOf(Buffer.from([13,10,13,10]));
+
+    if(spacePosition > -1){
+        let header = this.headersChunks.slice(0, spacePosition);
+        let body = this.headersChunks.slice(spacePosition+4);
+        endHeadersCallback({headers: this.parseHeaders(header), body: body});
     }
   }
 
-  parseHeaders(headersString){
-    if(!headersString){
+  parseHeaders(headerBuffer){
+    if(!headerBuffer){
       return null;
     }
     let headers = {}
-    let parts = headersString.split('\r\n');
+    let parts = headerBuffer.toString('utf8').split('\r\n');
     let [Type, Path, Protocol] = parts[0].split(/\s+/g);
     headers = {
       ...headers,

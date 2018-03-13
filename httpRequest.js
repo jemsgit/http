@@ -23,19 +23,9 @@ class HttpRequest extends Readable{
     }
   }
 
-  subscribeOnData(){
-    this.socket.on('data', (data)=>{
-      this.avaliadbleContent-=data.length;
-      this.bodyChunk = data;
-      this.push(this.bodyChunk);
-      if(this.avaliadbleContent === 0){
-        this.push(null)
-      }
-    })
-  }
 
   _read(){
-
+    this.socket.resume();
   }
 
 }

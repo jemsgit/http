@@ -4,7 +4,10 @@ const req = Buffer.from('POST / HTTP/1.1\r\nHost: 127.0.0.1:8082\r\nUser-Agent: 
 let pos = 0;
 const s = new Socket();
 s.connect('8084');
-
+s.on('data', (data)=>{
+  console.log('data');
+  console.log(data);
+})
 
 function writeData(){
   chunk = req.slice(pos, pos+3);
